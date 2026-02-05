@@ -1,21 +1,79 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import AuthInput from "@/components/auth/AuthInput";
 import PasswordInput from "@/components/auth/PasswordInput";
 import OrDivider from "@/components/auth/OrDivider";
 import GoogleButton from "@/components/auth/GoogleButton";
+import { googleSignIn, register } from "@/lib/api/auth";
+import type { ApiError } from "@/lib/api/axiosClient";
+import { setSession } from "@/lib/auth/session";
+import { requestGoogleCredential } from "@/lib/auth/google";
+
+type CountryOption = {
+  code: string;
+  label: string;
+  flag: string;
+};
+
+const countryOptions: CountryOption[] = [
+  { code: "+1", label: "United States", flag: "🇺🇸" },
+  { code: "+44", label: "United Kingdom", flag: "🇬🇧" },
+  { code: "+234", label: "Nigeria", flag: "🇳🇬" },
+  { code: "+233", label: "Ghana", flag: "🇬🇭" },
+  { code: "+27", label: "South Africa", flag: "🇿🇦" },
+  { code: "+254", label: "Kenya", flag: "🇰🇪" },
+  { code: "+91", label: "India", flag: "🇮🇳" },
+  { code: "+61", label: "Australia", flag: "🇦🇺" },
+  { code: "+49", label: "Germany", flag: "🇩🇪" },
+  { code: "+33", label: "France", flag: "🇫🇷" },
+];
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState(countryOptions[0].code);
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [updates, setUpdates] = useState(false);
   const [terms, setTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const countryRef = useRef<HTMLDivElement | null>(null);
+
+  const selectedCountry =
+    countryOptions.find((option) => option.code === countryCode) ||
+    countryOptions[0];
+
+  useEffect(() => {
+    const handleClick = (event: MouseEvent) => {
+      if (!countryRef.current) return;
+      if (!countryRef.current.contains(event.target as Node)) {
+        setCountryOpen(false);
+      }
+    };
+
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setCountryOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, []);
 
   const isActive =
     firstName.trim().length > 0 &&
@@ -25,9 +83,65 @@ export default function SignUpPage() {
     password.trim().length > 0 &&
     terms;
 
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!isActive || loading) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const normalizedPhone = phoneNumber.trim().replace(/^\+/, "");
+      const fullPhone = normalizedPhone
+        ? `${countryCode}${normalizedPhone}`
+        : undefined;
+
+      await register(
+        {
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          username,
+          password,
+          phone: fullPhone,
+          subscribed_email_campaigns: updates,
+          subscribed_sms_campaigns: updates,
+        },
+        true
+      );
+      router.push(`/auth/confirm-email?email=${encodeURIComponent(email)}`);
+    } catch (err) {
+      const apiError = err as ApiError;
+      setError(apiError.message || "Unable to create account.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    if (googleLoading) return;
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      const credentials = await requestGoogleCredential();
+      const data = await googleSignIn({ credentials, isForeverFree: false });
+      if (data?.token) {
+        setSession({ token: data.token, user: data.user });
+      }
+      router.push("/app/dashboard");
+    } catch (err) {
+      const apiError = err as ApiError;
+      const message =
+        apiError?.message ||
+        (err instanceof Error ? err.message : null) ||
+        "Google sign up failed.";
+      setError(message);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
-    <div className="auth-enter space-y-4">
-      <div className="space-y-1 text-center">
+    <div className="auth-enter space-y-6">
+      <div className="space-y-2 text-center">
         <h1 className="text-3xl font-semibold text-white lg:text-4xl">
           <span className="font-[var(--font-display)]">Sign Up</span>
         </h1>
@@ -36,7 +150,7 @@ export default function SignUpPage() {
         </p>
       </div>
 
-      <div className="space-y-2">
+      <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <AuthInput
             label="First Name"
@@ -87,20 +201,24 @@ export default function SignUpPage() {
           >
             Phone Number
           </label>
-          <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2">
-              <div className="flex items-center gap-2 rounded-md border border-[#262c35] bg-[#11161c] px-2 py-1 text-xs text-[#d7dfea]">
-                <span
-                  className="h-4 w-6 overflow-hidden rounded-sm border border-white/20"
-                  aria-hidden="true"
-                >
-                  <span className="block h-full w-full bg-[linear-gradient(180deg,#b22234_0%,#b22234_14%,#ffffff_14%,#ffffff_28%,#b22234_28%,#b22234_42%,#ffffff_42%,#ffffff_56%,#b22234_56%,#b22234_70%,#ffffff_70%,#ffffff_84%,#b22234_84%,#b22234_100%)]">
-                    <span className="block h-full w-2.5 bg-[#3c3b6e]" />
-                  </span>
+          <div className="flex h-11 items-center rounded-lg border border-[#262c35] bg-[#11161c] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <div
+              ref={countryRef}
+              className="relative flex h-full items-center border-r border-[#262c35] px-3"
+            >
+              <button
+                type="button"
+                onClick={() => setCountryOpen((prev) => !prev)}
+                className="flex items-center gap-2 text-xs text-[#d7dfea]"
+                aria-haspopup="listbox"
+                aria-expanded={countryOpen}
+              >
+                <span className="text-base" aria-hidden="true">
+                  {selectedCountry.flag}
                 </span>
                 <svg
-                  width="12"
-                  height="12"
+                  width="14"
+                  height="14"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -108,21 +226,50 @@ export default function SignUpPage() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   aria-hidden="true"
+                  className="text-[#9aa4b2]"
                 >
                   <path d="m6 9 6 6 6-6" />
                 </svg>
-                <span className="text-[#9aa4b2]">+1</span>
-              </div>
+              </button>
+              {countryOpen && (
+                <div
+                  role="listbox"
+                  className="absolute left-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-lg border border-[#2a2f36] bg-[#151a21] shadow-[0_12px_30px_rgba(0,0,0,0.5)]"
+                >
+                  {countryOptions.map((option) => (
+                    <button
+                      key={option.code}
+                      type="button"
+                      onClick={() => {
+                        setCountryCode(option.code);
+                        setCountryOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-[#d7dfea] transition hover:bg-[#1f2530]"
+                      role="option"
+                      aria-selected={option.code === countryCode}
+                    >
+                      <span className="text-sm" aria-hidden="true">
+                        {option.flag}
+                      </span>
+                      <span className="text-[#9aa4b2]">{option.code}</span>
+                      <span className="truncate">{option.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              placeholder="+1(123)456-7890"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              className="h-11 w-full rounded-lg border border-[#262c35] bg-[#11161c] px-4 pl-[118px] text-sm text-[#eef2ff] placeholder:text-[#6c7483] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition focus-visible:border-[#2d8cff] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2d8cff] focus-visible:shadow-[0_0_0_4px_rgba(45,140,255,0.16)]"
-            />
+            <div className="flex h-full flex-1 items-center px-3">
+              <span className="text-sm text-[#9aa4b2]">{countryCode}</span>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                placeholder="1234567890"
+                value={phoneNumber}
+                onChange={(event) => setPhoneNumber(event.target.value)}
+                className="ml-2 h-full w-full bg-transparent text-sm text-[#eef2ff] placeholder:text-[#6c7483] focus:outline-none"
+              />
+            </div>
           </div>
         </div>
 
@@ -170,22 +317,28 @@ export default function SignUpPage() {
           </label>
         </div>
 
+        {error && <p className="text-xs text-[#ff6b6b]">{error}</p>}
+
         <button
-          type="button"
-          disabled={!isActive}
+          type="submit"
+          disabled={!isActive || loading}
           className={`h-11 w-full rounded-lg text-sm font-semibold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2d8cff] ${
-            isActive
+            isActive && !loading
               ? "bg-[#2d8cff] text-white hover:brightness-110"
               : "bg-[#2a2f36] text-[#8b94a6]"
           }`}
         >
-          Continue
+          {loading ? "Creating..." : "Continue"}
         </button>
-      </div>
+      </form>
 
       <OrDivider />
 
-      <GoogleButton label="Sign Up With Google" />
+      <GoogleButton
+        label="Sign Up With Google"
+        loading={googleLoading}
+        onClick={handleGoogleSignUp}
+      />
 
       <p className="text-center text-xs text-[#8f98a8]">
         Already have an account?{" "}

@@ -1,6 +1,8 @@
 type GoogleButtonProps = {
   label: string;
   disabled?: boolean;
+  loading?: boolean;
+  onClick?: () => void;
 };
 
 function GoogleIcon() {
@@ -31,11 +33,18 @@ function GoogleIcon() {
   );
 }
 
-export default function GoogleButton({ label, disabled }: GoogleButtonProps) {
+export default function GoogleButton({
+  label,
+  disabled,
+  loading,
+  onClick,
+}: GoogleButtonProps) {
   return (
     <button
       type="button"
-      disabled={disabled}
+      disabled={disabled || loading}
+      onClick={onClick}
+      aria-busy={loading}
       className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-[#2a2f36] bg-[#151a21] text-sm font-medium text-[#d5dbea] transition hover:border-[#3a404a] hover:bg-[#1a2029] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
     >
       <GoogleIcon />

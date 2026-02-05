@@ -1,14 +1,54 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import AuthInput from "@/components/auth/AuthInput";
+import { sendVerificationOtp, verifyUserOtp } from "@/lib/api/auth";
+import type { ApiError } from "@/lib/api/axiosClient";
 
 export default function ConfirmEmailPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [step, setStep] = useState<"email" | "otp">("email");
   const [otp, setOtp] = useState<string[]>(Array.from({ length: 6 }, () => ""));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [autoSend, setAutoSend] = useState(false);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const autoSendRef = useRef(false);
+
+  useEffect(() => {
+    const queryEmail = searchParams.get("email");
+    if (queryEmail) {
+      setEmail(queryEmail);
+      setAutoSend(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!autoSend || !email || autoSendRef.current) return;
+    autoSendRef.current = true;
+
+    const send = async () => {
+      setError(null);
+      setLoading(true);
+      try {
+        await sendVerificationOtp({ channel: "email", email });
+        setStep("otp");
+      } catch (err) {
+        const apiError = err as ApiError;
+        setError(apiError.message || "Unable to send verification code.");
+        setStep("email");
+        autoSendRef.current = false;
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void send();
+  }, [autoSend, email]);
 
   const emailReady = email.trim().length > 0;
   const otpReady = otp.every((digit) => digit.length === 1);
@@ -48,6 +88,41 @@ export default function ConfirmEmailPage() {
     inputRefs.current[focusIndex]?.focus();
   };
 
+  const handleSendOtp = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!emailReady || loading) return;
+    setError(null);
+    setLoading(true);
+    try {
+      await sendVerificationOtp({ channel: "email", email });
+      setStep("otp");
+    } catch (err) {
+      const apiError = err as ApiError;
+      setError(apiError.message || "Unable to send verification code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpReady || loading) return;
+    setError(null);
+    setLoading(true);
+    try {
+      await verifyUserOtp({
+        otp: otp.join(""),
+        type: "email",
+        email,
+      });
+      router.push("/app/dashboard");
+    } catch (err) {
+      const apiError = err as ApiError;
+      setError(apiError.message || "Invalid verification code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="auth-enter space-y-6">
       {step === "email" ? (
@@ -63,7 +138,7 @@ export default function ConfirmEmailPage() {
             </p>
           </div>
 
-          <div className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSendOtp}>
             <AuthInput
               label="Email Address"
               name="confirm-email"
@@ -84,23 +159,20 @@ export default function ConfirmEmailPage() {
               </Link>
             </div>
 
+            {error && <p className="text-xs text-[#ff6b6b]">{error}</p>}
+
             <button
-              type="button"
-              disabled={!emailReady}
-              onClick={() => {
-                if (emailReady) {
-                  setStep("otp");
-                }
-              }}
+              type="submit"
+              disabled={!emailReady || loading}
               className={`h-11 w-full rounded-lg text-sm font-semibold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2d8cff] ${
-                emailReady
+                emailReady && !loading
                   ? "bg-[#2d8cff] text-white hover:brightness-110"
                   : "bg-[#2a2f36] text-[#8b94a6]"
               }`}
             >
-              Continue
+              {loading ? "Sending..." : "Continue"}
             </button>
-          </div>
+          </form>
         </>
       ) : (
         <>
@@ -147,16 +219,19 @@ export default function ConfirmEmailPage() {
               </Link>
             </div>
 
+            {error && <p className="text-center text-xs text-[#ff6b6b]">{error}</p>}
+
             <button
               type="button"
-              disabled={!otpReady}
+              disabled={!otpReady || loading}
+              onClick={handleVerifyOtp}
               className={`h-11 w-full rounded-lg text-sm font-semibold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2d8cff] ${
-                otpReady
+                otpReady && !loading
                   ? "bg-[#2d8cff] text-white hover:brightness-110"
                   : "bg-[#2a2f36] text-[#8b94a6]"
               }`}
             >
-              Continue
+              {loading ? "Verifying..." : "Continue"}
             </button>
           </div>
         </>

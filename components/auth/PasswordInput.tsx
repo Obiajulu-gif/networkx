@@ -67,37 +67,37 @@ export default function PasswordInput({
   const [visible, setVisible] = useState(false);
 
   return (
-    <AuthInput
-      label={label}
-      name={name}
-      type={visible ? "text" : "password"}
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      required={required}
-      autoComplete={autoComplete}
-      rightElement={
-        <button
-          type="button"
-          onClick={() => setVisible((prev) => !prev)}
-          aria-label={visible ? "Hide password" : "Show password"}
-          aria-pressed={visible}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-[#9aa4b2] transition hover:text-[#d7dfef] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2d8cff]"
-        >
-          <span className="relative h-4 w-4">
-            <EyeIcon
-              className={`absolute inset-0 transition-opacity duration-200 ${
-                visible ? "opacity-0" : "opacity-100"
-              }`}
-            />
-            <EyeOffIcon
-              className={`absolute inset-0 transition-opacity duration-200 ${
-                visible ? "opacity-100" : "opacity-0"
-              }`}
-            />
-          </span>
-        </button>
-      }
-    />
-  );
+		<AuthInput
+			label={label}
+			name={name}
+			type={visible ? "text" : "password"}
+			placeholder={placeholder}
+			value={value}
+			onChange={onChange}
+			required={required}
+			autoComplete={autoComplete}
+			rightElement={
+				<button
+					type="button"
+					onClick={() => setVisible((prev) => !prev)}
+					aria-label={visible ? "Hide password" : "Show password"}
+					aria-pressed={visible}
+					className="flex h-8 w-8 items-center justify-center rounded-full text-[#9aa4b2] transition hover:text-[#d7dfef] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2d8cff]"
+				>
+					<span className="relative h-4 w-4">
+						<EyeIcon
+							className={`absolute inset-0 transition-opacity duration-200 ${
+								visible ? "opacity-0" : "opacity-100"
+							}`}
+						/>
+						<EyeOffIcon
+							className={`absolute inset-0 transition-opacity duration-200 ${
+								visible ? "opacity-100" : "opacity-0"
+							}`}
+						/>
+					</span>
+				</button>
+			}
+		/>
+	);
 }

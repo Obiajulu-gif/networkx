@@ -25,6 +25,16 @@ body {
   font-family: var(--font-body);
 }
 
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+}
+
 .auth-background {
   background: linear-gradient(180deg, #0d0f12 0%, #0b0c10 100%);
 }
