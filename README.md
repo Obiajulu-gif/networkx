@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NetworkX.ai Auth UI
+
+Pixel-precise authentication UI built with Next.js App Router, TypeScript, and Tailwind CSS. The project implements a reusable split layout and three auth screens (Sign In, Sign Up, Confirm Email) with responsive behavior, subtle animations, and accessible form controls.
+
+## Overview
+
+NetworkX.ai is a dark, gradient-driven authentication experience designed for desktop and mobile:
+
+- Desktop: two-column split layout (left marketing/preview panel + right form)
+- Mobile: single-column form with brand logo at the top
+- Smooth page entry transitions, focus glows, and button interactions
+
+## Screens
+
+- `/auth/sign-in`
+- `/auth/sign-up`
+- `/auth/confirm-email` (includes OTP step after email entry)
+
+## Features
+
+- Reusable split layout via route group layout
+- Controlled inputs with accessible labels and focus rings
+- Password visibility toggle with icon fade
+- Google auth button UI
+- OTP entry UI with auto-advance and paste handling
+- Responsive grid for first/last name fields
+- Dark theme with gradient background
+
+## Tech Stack
+
+- Next.js App Router
+- TypeScript (strict)
+- Tailwind CSS v4
+- next/image for optimized assets
+- next/font for typography
+
+## Project Structure
+
+```
+app/
+  (auth)/
+    layout.tsx
+    auth/
+      sign-in/page.tsx
+      sign-up/page.tsx
+      confirm-email/page.tsx
+  globals.css
+  layout.tsx
+  page.tsx
+components/
+  auth/
+    AuthInput.tsx
+    AuthSplitLayout.tsx
+    GoogleButton.tsx
+    Logo.tsx
+    MarketingPanel.tsx
+    OrDivider.tsx
+    PasswordInput.tsx
+public/
+  left-frame.png
+  networkx-logo.png
+```
+
+## Assets
+
+Place the following assets in `public/` (already referenced in code):
+
+- `left-frame.png` — marketing/preview image on the left panel
+- `networkx-logo.png` — brand logo used on mobile header
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies and run the dev server:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm dev     # Start dev server
+pnpm build   # Production build
+pnpm start   # Start production server
+pnpm lint    # Run ESLint
+```
 
-## Learn More
+## Notes
 
-To learn more about Next.js, take a look at the following resources:
+- No backend/auth logic is included (UI-only).
+- Buttons activate based on local form state.
+- OTP entry is client-side only and does not call APIs.
+- Background and layout are optimized for the provided design references.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Accessibility
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Proper label associations and `aria-*` attributes
+- Keyboard navigation for all controls
+- Focus-visible rings for inputs and buttons
 
-## Deploy on Vercel
+## Customization
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Update colors in `app/globals.css`
+- Replace `public/left-frame.png` with your final illustration
+- Replace `public/networkx-logo.png` with your final logo
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+This project is a standard Next.js App Router app and can be deployed to any platform that supports Node.js and Next.js (e.g., Vercel, Netlify, or self-hosted).
